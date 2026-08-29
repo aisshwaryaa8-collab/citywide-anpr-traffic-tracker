@@ -1,0 +1,10 @@
+{
+  "avg_travel_time_seconds": {
+    "cam_01->cam_03": 215.0,
+    "cam_03->cam_02": 344.0,
+    "cam_01->cam_02": 559.0
+  },
+  "vehicle_count_per_camera": {
+    "cam_02": 2
+  }
+}

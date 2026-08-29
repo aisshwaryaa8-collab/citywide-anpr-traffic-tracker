@@ -1,0 +1,12 @@
+{
+  "camera_id": "cam_03",
+  "frames": [
+    {
+      "timestamp": "2026-09-01T10:19:07Z",
+      "frame_no": 900,
+      "vehicles": [
+        {"track_id": 41, "bbox": [200,250,340,340], "plate_text": "TN22AB1234", "plate_confidence": 0.88, "vehicle_type": "car"}
+      ]
+    }
+  ]
+}
