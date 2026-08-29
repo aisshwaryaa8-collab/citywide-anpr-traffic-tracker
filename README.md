@@ -1,6 +1,8 @@
-# SIH26127 — City-Wide AI Engine for Multi-Camera ANPR Trajectory Tracking & Urban Traffic Analytics
+# SIH26127 — City-Wide AI Engine for Multi-Camera ANPR Trajectory Tracking & Urban Traffic Analytics #
 
-An end-to-end, AI-powered intelligent traffic management system designed to track vehicle trajectories across multiple simulated camera feeds using Automatic Number-Plate Recognition (ANPR) and provide real-time urban traffic analytics on a live web dashboard
+An end-to-end, AI-powered intelligent traffic management system designed to track vehicle trajectories across multiple simulated camera feeds using Automatic Number-Plate Recognition (ANPR) and provide real-time urban traffic analytics on a live web dashboard.
+
+
 ---
 
 ## 📂 Repository Structure
