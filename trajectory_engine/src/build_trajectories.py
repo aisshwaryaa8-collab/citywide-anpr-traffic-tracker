@@ -2,6 +2,9 @@ import argparse
 import glob
 import json
 import os
+# NOTE: sample_output/detections_demo_staged*.json are manually staged entries
+# for demo purposes only — real cam_01/02/03 footage has 0% plate reads so far.
+# See PR #5 discussion. Remove before using real multi-camera footage.
 from collections import defaultdict
 from datetime import datetime
 from difflib import SequenceMatcher
@@ -42,7 +45,7 @@ def load_detections(input_dir):
     return sightings
 
 
-def plates_similar(p1, p2, threshold=0.75):
+def plates_similar(p1, p2, threshold=0.8):
     """Returns True if two plate strings are similar enough to be the same vehicle."""
     return SequenceMatcher(None, p1, p2).ratio() >= threshold
 
