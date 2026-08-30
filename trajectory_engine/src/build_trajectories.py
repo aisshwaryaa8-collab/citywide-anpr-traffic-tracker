@@ -4,6 +4,7 @@ import json
 import os
 from collections import defaultdict
 from datetime import datetime
+from difflib import SequenceMatcher
 from statistics import mean
 
 
@@ -41,25 +42,41 @@ def load_detections(input_dir):
     return sightings
 
 
+def plates_similar(p1, p2, threshold=0.75):
+    """Returns True if two plate strings are similar enough to be the same vehicle."""
+    return SequenceMatcher(None, p1, p2).ratio() >= threshold
+
+
 def build_trajectories(sightings):
-    grouped = defaultdict(list)
+    sightings.sort(key=lambda s: parse_ts(s["timestamp"]))
+
+    clusters = []
     for s in sightings:
-        grouped[s["plate_text"]].append(s)
+        matched_cluster = None
+        for cluster in clusters:
+            if plates_similar(cluster[-1]["plate_text"], s["plate_text"]):
+                matched_cluster = cluster
+                break
+        if matched_cluster is not None:
+            matched_cluster.append(s)
+        else:
+            clusters.append([s])
 
     trajectories = []
-    for plate, group in grouped.items():
-        group.sort(key=lambda s: parse_ts(s["timestamp"]))
+    for cluster in clusters:
+        best = max(cluster, key=lambda s: s["plate_confidence"])
+        canonical_plate = best["plate_text"]
 
         path = []
-        for s in group:
+        for s in cluster:
             if path and path[-1]["camera_id"] == s["camera_id"]:
                 continue
             path.append({"camera_id": s["camera_id"], "timestamp": s["timestamp"]})
 
-        confidence = round(mean(s["plate_confidence"] for s in group), 4)
+        confidence = round(mean(s["plate_confidence"] for s in cluster), 4)
 
         trajectories.append({
-            "vehicle": {"plate_text": plate, "vehicle_type": group[0]["vehicle_type"]},
+            "vehicle": {"plate_text": canonical_plate, "vehicle_type": cluster[0]["vehicle_type"]},
             "path": path,
             "confidence": confidence,
         })
