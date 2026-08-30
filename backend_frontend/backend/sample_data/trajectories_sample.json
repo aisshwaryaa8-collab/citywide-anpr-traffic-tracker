@@ -1,0 +1,36 @@
+[
+  {
+    "vehicle": { "plate_text": "TN22AB1234", "vehicle_type": "car" },
+    "path": [
+      { "camera_id": "cam_01", "timestamp": "2026-09-01T10:15:32Z" },
+      { "camera_id": "cam_03", "timestamp": "2026-09-01T10:19:07Z" },
+      { "camera_id": "cam_02", "timestamp": "2026-09-01T10:24:51Z" }
+    ],
+    "confidence": 0.87
+  },
+  {
+    "vehicle": { "plate_text": "TN09CD5678", "vehicle_type": "bike" },
+    "path": [
+      { "camera_id": "cam_02", "timestamp": "2026-09-01T10:05:10Z" },
+      { "camera_id": "cam_01", "timestamp": "2026-09-01T10:11:44Z" }
+    ],
+    "confidence": 0.93
+  },
+  {
+    "vehicle": { "plate_text": "TN01EF9012", "vehicle_type": "truck" },
+    "path": [
+      { "camera_id": "cam_03", "timestamp": "2026-09-01T09:58:00Z" },
+      { "camera_id": "cam_02", "timestamp": "2026-09-01T10:07:22Z" },
+      { "camera_id": "cam_01", "timestamp": "2026-09-01T10:16:39Z" }
+    ],
+    "confidence": 0.79
+  },
+  {
+    "vehicle": { "plate_text": "TN45GH3456", "vehicle_type": "car" },
+    "path": [
+      { "camera_id": "cam_01", "timestamp": "2026-09-01T10:30:00Z" },
+      { "camera_id": "cam_02", "timestamp": "2026-09-01T10:36:12Z" }
+    ],
+    "confidence": 0.95
+  }
+]
