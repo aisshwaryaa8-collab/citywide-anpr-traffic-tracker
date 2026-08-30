@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ANPR Trajectory Ops — City-Wide Traffic Tracker</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:#0A0E14;
+    --panel:#10161F;
+    --panel-border:#1E2733;
+    --ink:#DCE4EC;
+    --ink-dim:#6C7A8C;
+    --amber:#F2B705;
+    --cyan:#4FD8C7;
+    --red:#E5484D;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Space Grotesk', sans-serif;
+    height:100vh;
+    overflow:hidden;
+  }
+  .mono{ font-family:'JetBrains Mono', monospace; }
+
+  /* ---- Top bar ---- */
+  header{
+    height:56px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 20px;
+    border-bottom:1px solid var(--panel-border);
+    background:var(--panel);
+  }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand .dot{
+    width:9px; height:9px; border-radius:50%;
+    background:var(--cyan);
+    box-shadow:0 0 8px var(--cyan);
+    animation:pulse 1.8s infinite ease-in-out;
+  }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+  .brand h1{ font-size:14px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+  .brand span{ font-size:11px; color:var(--ink-dim); }
+  #clock{ font-size:12px; color:var(--ink-dim); }
+
+  /* ---- Layout ---- */
+  .layout{ display:grid; grid-template-columns:320px 1fr; height:calc(100vh - 56px); }
+
+  /* ---- Sidebar ---- */
+  aside{
+    background:var(--panel);
+    border-right:1px solid var(--panel-border);
+    display:flex; flex-direction:column;
+    overflow:hidden;
+  }
+  .search-block{ padding:16px; border-bottom:1px solid var(--panel-border); }
+  .search-block label{ font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-dim); }
+  .search-row{ display:flex; gap:6px; margin-top:8px; }
+  #plateInput{
+    flex:1;
+    background:#0A0E14;
+    border:1px solid var(--panel-border);
+    color:var(--ink);
+    padding:9px 10px;
+    border-radius:4px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:13px;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+  }
+  #plateInput:focus{ outline:none; border-color:var(--cyan); }
+  #searchBtn{
+    background:var(--cyan);
+    color:#04201C;
+    border:none;
+    padding:0 14px;
+    border-radius:4px;
+    font-weight:700;
+    font-size:12px;
+    cursor:pointer;
+  }
+  #searchBtn:hover{ filter:brightness(1.1); }
+  #searchMsg{ font-size:11px; margin-top:8px; color:var(--red); min-height:14px; }
+
+  .list-header{
+    padding:14px 16px 6px;
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:var(--ink-dim);
+  }
+  #vehicleList{ overflow-y:auto; flex:1; padding:0 10px 10px; }
+  .veh-card{
+    background:#0D131C;
+    border:1px solid var(--panel-border);
+    border-radius:6px;
+    padding:10px 12px;
+    margin-bottom:8px;
+    cursor:pointer;
+    transition:border-color .15s;
+  }
+  .veh-card:hover, .veh-card.active{ border-color:var(--cyan); }
+  .veh-plate{ font-family:'JetBrains Mono', monospace; font-size:13px; font-weight:700; letter-spacing:.04em; }
+  .veh-meta{ font-size:11px; color:var(--ink-dim); margin-top:4px; display:flex; justify-content:space-between; }
+  .veh-conf{ color:var(--amber); }
+
+  .analytics-block{ border-top:1px solid var(--panel-border); padding:14px 16px; }
+  #countChart{ max-height:130px; }
+
+  /* ---- Map area ---- */
+  main{ position:relative; }
+  #map{ height:100%; width:100%; background:#0A0E14; }
+  .leaflet-container{ background:#0A0E14; }
+     .leaflet-tile-pane{ filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9); }
+
+  .empty-state{
+    position:absolute; top:16px; left:16px; z-index:500;
+    background:rgba(16,22,31,.9);
+    border:1px solid var(--panel-border);
+    padding:10px 14px; border-radius:6px;
+    font-size:12px; color:var(--ink-dim);
+    max-width:260px;
+  }
+
+  ::-webkit-scrollbar{ width:6px; }
+  ::-webkit-scrollbar-thumb{ background:var(--panel-border); border-radius:3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="dot"></div>
+    <div>
+      <h1>ANPR Trajectory Ops</h1>
+      <span>City-Wide Multi-Camera Traffic Tracker</span>
+    </div>
+  </div>
+  <div id="clock" class="mono">--:--:--</div>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="search-block">
+      <label>Search by plate number</label>
+      <div class="search-row">
+        <input id="plateInput" class="mono" placeholder="TN22AB1234" />
+        <button id="searchBtn">TRACE</button>
+      </div>
+      <div id="searchMsg"></div>
+    </div>
+
+    <div class="list-header">All tracked vehicles</div>
+    <div id="vehicleList"></div>
+
+    <div class="analytics-block">
+      <div class="list-header" style="padding-left:0;">Vehicle count / camera</div>
+      <canvas id="countChart"></canvas>
+    </div>
+  </aside>
+
+  <main>
+    <div id="map"></div>
+    <div class="empty-state" id="emptyState">Click a vehicle on the left, or search a plate, to draw its route across cameras.</div>
+  </main>
+</div>
+
+<script>
+// ---------------------------------------------------------------------
+// CONFIG — change this if your backend runs somewhere else
+// ---------------------------------------------------------------------
+const API_BASE = "http://localhost:8000";
+
+let cameraLocations = {};
+let allTrajectories = [];
+let map, pathLayer, markerLayer;
+let countChart;
+
+// ---- Clock ----
+setInterval(() => {
+  document.getElementById('clock').textContent = new Date().toISOString().replace('T',' ').split('.')[0] + ' UTC';
+}, 1000);
+
+// ---- Init map ----
+function initMap(){
+  map = L.map('map', { zoomControl:true }).setView([13.06, 80.25], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+     attribution: '&copy; OpenStreetMap contributors',
+     maxZoom: 19
+   }).addTo(map);
+  pathLayer = L.layerGroup().addTo(map);
+  markerLayer = L.layerGroup().addTo(map);
+}
+
+// ---- Draw static camera markers ----
+function drawCameras(){
+  Object.entries(cameraLocations).forEach(([camId, cam]) => {
+    L.circleMarker([cam.lat, cam.lng], {
+      radius: 7,
+      color: '#F2B705',
+      fillColor: '#F2B705',
+      fillOpacity: 0.9,
+      weight: 2
+    }).bindTooltip(cam.label || camId, {permanent:false})
+      .addTo(markerLayer);
+  });
+}
+
+// ---- Draw a vehicle's path on the map ----
+function drawTrajectory(entry){
+  pathLayer.clearLayers();
+  document.getElementById('emptyState').style.display = 'none';
+
+  const latlngs = entry.path
+    .map(stop => cameraLocations[stop.camera_id])
+    .filter(Boolean)
+    .map(cam => [cam.lat, cam.lng]);
+
+  if (latlngs.length === 0) return;
+
+  L.polyline(latlngs, { color:'#4FD8C7', weight:3, opacity:0.9, dashArray:'6 6' }).addTo(pathLayer);
+
+  entry.path.forEach((stop, i) => {
+    const cam = cameraLocations[stop.camera_id];
+    if (!cam) return;
+    L.marker([cam.lat, cam.lng], {
+      icon: L.divIcon({
+        className:'',
+        html:`<div style="background:#4FD8C7;color:#04201C;font:700 10px 'JetBrains Mono';border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 6px #4FD8C7;">${i+1}</div>`,
+        iconSize:[22,22], iconAnchor:[11,11]
+      })
+    }).bindTooltip(`${stop.camera_id} · ${stop.timestamp}`).addTo(pathLayer);
+  });
+
+  map.fitBounds(latlngs, { padding:[60,60] });
+}
+
+// ---- Sidebar vehicle list ----
+function renderVehicleList(){
+  const list = document.getElementById('vehicleList');
+  list.innerHTML = '';
+  allTrajectories.forEach(entry => {
+    const card = document.createElement('div');
+    card.className = 'veh-card';
+    card.innerHTML = `
+      <div class="veh-plate">${entry.vehicle.plate_text}</div>
+      <div class="veh-meta">
+        <span>${entry.vehicle.vehicle_type} · ${entry.path.length} cams</span>
+        <span class="veh-conf">${Math.round(entry.confidence*100)}%</span>
+      </div>`;
+    card.onclick = () => {
+      document.querySelectorAll('.veh-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      drawTrajectory(entry);
+    };
+    list.appendChild(card);
+  });
+}
+
+// ---- Search ----
+async function searchPlate(){
+  const raw = document.getElementById('plateInput').value.trim().toUpperCase().replace(/\s+/g,'');
+  const msg = document.getElementById('searchMsg');
+  msg.textContent = '';
+  if (!raw){ msg.textContent = 'Type a plate number first.'; return; }
+
+  try {
+    const res = await fetch(`${API_BASE}/trajectories/${raw}`);
+    if (!res.ok){ msg.textContent = `No trajectory found for ${raw}.`; return; }
+    const entry = await res.json();
+    drawTrajectory(entry);
+  } catch (e) {
+    msg.textContent = 'Could not reach the backend. Is it running on :8000?';
+  }
+}
+document.getElementById('searchBtn').onclick = searchPlate;
+document.getElementById('plateInput').addEventListener('keydown', e => { if (e.key === 'Enter') searchPlate(); });
+
+// ---- Analytics chart ----
+async function loadAnalytics(){
+  try {
+    const res = await fetch(`${API_BASE}/analytics`);
+    const data = await res.json();
+    const labels = Object.keys(data.vehicle_count_per_camera);
+    const values = Object.values(data.vehicle_count_per_camera);
+
+    const ctx = document.getElementById('countChart');
+    if (countChart) countChart.destroy();
+    countChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{ data: values, backgroundColor: '#4FD8C7', borderRadius: 3, maxBarThickness: 28 }]
+      },
+      options: {
+        plugins: { legend: { display:false } },
+        scales: {
+          x: { ticks:{ color:'#6C7A8C', font:{size:10} }, grid:{ display:false } },
+          y: { ticks:{ color:'#6C7A8C', font:{size:10}, precision:0 }, grid:{ color:'#1E2733' } }
+        }
+      }
+    });
+  } catch(e){ /* backend not up yet — chart just stays empty */ }
+}
+
+// ---- Boot sequence ----
+async function boot(){
+  initMap();
+  try {
+    const [camRes, trajRes] = await Promise.all([
+      fetch(`${API_BASE}/cameras`),
+      fetch(`${API_BASE}/trajectories`)
+    ]);
+    cameraLocations = await camRes.json();
+    allTrajectories = await trajRes.json();
+    drawCameras();
+    renderVehicleList();
+    loadAnalytics();
+  } catch (e) {
+    document.getElementById('emptyState').textContent =
+      "Can't reach the backend. Run it first: cd backend && uvicorn main:app --reload --port 8000";
+  }
+}
+boot();
+</script>
+</body>
+</html>
