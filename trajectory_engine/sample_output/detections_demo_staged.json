@@ -1,0 +1,18 @@
+{
+  "camera_id": "cam_01",
+  "frames": [
+    {
+      "timestamp": "2026-08-29T17:09:12.196692Z",
+      "frame_no": 1,
+      "vehicles": [
+        {
+          "track_id": 901,
+          "bbox": [100, 100, 200, 200],
+          "plate_text": "NAIJNRU",
+          "plate_confidence": 0.5772332538093179,
+          "vehicle_type": "car"
+        }
+      ]
+    }
+  ]
+}
