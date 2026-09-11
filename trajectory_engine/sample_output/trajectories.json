@@ -1,6 +1,23 @@
 [
   {
     "vehicle": {
+      "plate_text": "NAIJNRU",
+      "vehicle_type": "car"
+    },
+    "path": [
+      {
+        "camera_id": "cam_01",
+        "timestamp": "2026-08-29T17:09:12.196692Z"
+      },
+      {
+        "camera_id": "cam_02",
+        "timestamp": "2026-08-29T17:09:42.196692Z"
+      }
+    ],
+    "confidence": 0.5772
+  },
+  {
+    "vehicle": {
       "plate_text": "TN22AB1234",
       "vehicle_type": "car"
     },
