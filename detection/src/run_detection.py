@@ -11,15 +11,16 @@ plate_model = YOLO("detection/models/plate_detector.pt")
 reader = easyocr.Reader(['en'])
 
 CONFIDENCE_THRESHOLD = 0.3
+DEBUG_CROP_COUNTER = [0]
 VEHICLE_CLASSES = [2, 3, 5, 7]
 OCR_EVERY_N_FRAMES = 10
 
 
 def preprocess_plate(plate_crop):
     gray = cv2.cvtColor(plate_crop, cv2.COLOR_BGR2GRAY)
-    resized = cv2.resize(gray, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
-    return resized
-
+    resized = cv2.resize(gray, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC)  # 2x -> 4x
+    equalized = cv2.equalizeHist(resized)  # boost contrast
+    return equalized
 
 def read_plate(frame, bbox):
     """Use the dedicated plate detector to find the plate within the vehicle box, then OCR it."""
@@ -29,7 +30,10 @@ def read_plate(frame, bbox):
     if vehicle_crop.size == 0:
         return None, 0.0
 
-    plate_results = plate_model.predict(vehicle_crop, conf=0.25, verbose=False)
+    # upscale the vehicle crop before plate detection (same trick OCR already uses)
+    vehicle_crop_upscaled = cv2.resize(vehicle_crop, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+
+    plate_results = plate_model.predict(vehicle_crop_upscaled, conf=0.25, verbose=False)
     plate_boxes = plate_results[0].boxes
 
     if plate_boxes is None or len(plate_boxes) == 0:
@@ -37,7 +41,7 @@ def read_plate(frame, bbox):
 
     # take the first/most confident plate box found within this vehicle
     px1, py1, px2, py2 = map(int, plate_boxes.xyxy[0].tolist())
-    plate_region = vehicle_crop[py1:py2, px1:px2]
+    plate_region = vehicle_crop_upscaled[py1:py2, px1:px2]
 
     if plate_region.size == 0:
         return None, 0.0
@@ -115,9 +119,9 @@ def process_video(video_path, camera_id, output_path):
 if __name__ == "__main__":
     cameras = [
         ("data/cam_01.mp4", "cam_01", "detection/sample_output/detections_cam01.json"),
-        ("data/cam_02.mp4", "cam_02", "detection/sample_output/detections_cam02.json"),
-        ("data/cam_03.mp4", "cam_03", "detection/sample_output/detections_cam03.json"),
-        ("data/cam_closeup.mp4", "cam_closeup", "detection/sample_output/detections_closeup.json"),
+        #("data/cam_02.mp4", "cam_02", "detection/sample_output/detections_cam02.json"),
+        #("data/cam_03.mp4", "cam_03", "detection/sample_output/detections_cam03.json"),
+        #("data/cam_closeup.mp4", "cam_closeup", "detection/sample_output/detections_closeup.json"),
     ]
 
     for video_path, camera_id, output_path in cameras:
